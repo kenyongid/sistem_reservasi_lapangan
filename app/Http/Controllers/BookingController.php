@@ -9,6 +9,7 @@ use App\Models\Reservasi;
 use App\Models\SlotWaktu;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class BookingController extends Controller
@@ -49,6 +50,7 @@ class BookingController extends Controller
         $slotWaktu = SlotWaktu::selectRaw(
             'MIN(id) as id, jam_mulai, jam_selesai'
         )
+            ->where('lapangan_id', $lapangan->id)
             ->groupBy('jam_mulai', 'jam_selesai')
             ->orderBy('jam_mulai')
             ->get();
@@ -65,7 +67,7 @@ class BookingController extends Controller
             $reservasi = Reservasi::with('slotWaktu')
                 ->where('lapangan_id', $lapangan->id)
                 ->whereDate('tanggal', $tanggal)
-                ->whereIn('status', ['Menunggu', 'Disetujui'])
+                ->whereIn('status', ['Draft', 'Menunggu', 'Disetujui'])
                 ->get();
 
             foreach ($reservasi as $item) {
@@ -102,7 +104,7 @@ class BookingController extends Controller
 
         $slotTerpakai = Reservasi::where('lapangan_id', $lapangan)
             ->whereDate('tanggal', $request->tanggal)
-            ->whereIn('status', ['Menunggu', 'Disetujui'])
+            ->whereIn('status', ['Draft', 'Menunggu', 'Disetujui'])
             ->pluck('slot_id');
 
         return response()->json($slotTerpakai);
@@ -118,6 +120,10 @@ class BookingController extends Controller
             'lapangan.jenisOlahraga',
             'slotWaktu',
         ])->findOrFail($id);
+
+        if (strcasecmp($reservasi->status, 'Draft') !== 0) {
+            return redirect()->route('booking.show', $reservasi->id);
+        }
 
         $produk = Produk::where('status', 'aktif')
             ->orderBy('kategori')
@@ -136,9 +142,6 @@ class BookingController extends Controller
      */
     public function simpanTambahan(Request $request, $id)
     {
-        $reservasi = Reservasi::findOrFail($id);
-
-
         /*
         |--------------------------------------------------------------------------
         | Validasi produk tambahan
@@ -152,42 +155,46 @@ class BookingController extends Controller
         ]);
 
 
-        $totalTambahan = 0;
-
-
         /*
         |--------------------------------------------------------------------------
         | Menyimpan setiap produk yang dipilih
         |--------------------------------------------------------------------------
         */
 
-        if ($request->filled('produk')) {
-
-            foreach ($request->produk as $item) {
-
-                // Pastikan produk masih aktif.
-                $produk = Produk::where('id', $item['id'])
-                    ->where('status', 'aktif')
-                    ->first();
-
-                if (!$produk) {
-                    continue;
-                }
-                $jumlah = (int) $item['jumlah'];
-                $subtotal = $produk->harga * $jumlah;
-
-
-                DetailReservasi::create([
-                    'reservasi_id' => $reservasi->id,
-                    'produk_id' => $produk->id,
-                    'jumlah' => $jumlah,
-                    'harga' => $produk->harga,
-                    'subtotal' => $subtotal,
-                ]);
-
-                $totalTambahan += $subtotal;
+        $reservasiId = DB::transaction(function () use ($request, $id) {
+            $reservasi = Reservasi::whereKey($id)->lockForUpdate()->firstOrFail();
+            if (strcasecmp($reservasi->status, 'Draft') !== 0) {
+                return $reservasi->id;
             }
-        }
+            $totalTambahan = 0;
+
+            if ($request->filled('produk')) {
+
+                foreach ($request->produk as $item) {
+
+                    // Pastikan produk masih aktif.
+                    $produk = Produk::where('id', $item['id'])
+                        ->where('status', 'aktif')
+                        ->first();
+
+                    if (!$produk) {
+                        continue;
+                    }
+                    $jumlah = (int) $item['jumlah'];
+                    $subtotal = $produk->harga * $jumlah;
+
+
+                    DetailReservasi::create([
+                        'reservasi_id' => $reservasi->id,
+                        'produk_id' => $produk->id,
+                        'jumlah' => $jumlah,
+                        'harga' => $produk->harga,
+                        'subtotal' => $subtotal,
+                    ]);
+
+                    $totalTambahan += $subtotal;
+                }
+            }
 
 
         /*
@@ -196,10 +203,13 @@ class BookingController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $reservasi->update([
-            'total_harga' => $reservasi->total_harga + $totalTambahan,
-            'status' => 'Menunggu',
-        ]);
+            $reservasi->update([
+                'total_harga' => $reservasi->total_harga + $totalTambahan,
+                'status' => 'Menunggu',
+            ]);
+
+            return $reservasi->id;
+        });
 
 
         /*
@@ -209,7 +219,7 @@ class BookingController extends Controller
         */
 
         return redirect()
-            ->route('booking.show', $reservasi->id)
+            ->route('booking.show', $reservasiId)
             ->with(
                 'success',
                 'Pemesanan berhasil diselesaikan.'
@@ -245,93 +255,47 @@ class BookingController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $lapangan = Lapangan::findOrFail(
-            $validated['lapangan_id']
-        );
+        $reservasi = DB::transaction(function () use ($validated) {
+            $lapangan = Lapangan::whereKey($validated['lapangan_id'])
+                ->lockForUpdate()
+                ->firstOrFail();
+            $slot = SlotWaktu::whereKey($validated['slot_id'])
+                ->where('lapangan_id', $lapangan->id)
+                ->firstOrFail();
 
+            abort_if($slot->jam_selesai <= $slot->jam_mulai, 422, 'Rentang waktu slot tidak valid.');
 
-        /*
-        |--------------------------------------------------------------------------
-        | Mengecek bentrok reservasi
-        |--------------------------------------------------------------------------
-        */
+            $sudahDipesan = Reservasi::where('lapangan_id', $lapangan->id)
+                ->whereDate('tanggal', $validated['tanggal'])
+                ->whereIn('status', ['Draft', 'Menunggu', 'Disetujui'])
+                ->whereHas('slotWaktu', function ($query) use ($slot) {
+                    $query->where('jam_mulai', '<', $slot->jam_selesai)
+                        ->where('jam_selesai', '>', $slot->jam_mulai);
+                })
+                ->exists();
 
-        $slot = SlotWaktu::findOrFail(
-            $validated['slot_id']
-        );
+            if ($sudahDipesan) {
+                return null;
+            }
 
-        $sudahDipesan = Reservasi::where(
-            'lapangan_id',
-            $validated['lapangan_id']
-        )
-            ->whereDate(
-                'tanggal',
-                $validated['tanggal']
-            )
-            ->whereIn(
-                'status',
-                ['draft', 'Menunggu', 'Disetujui']
-            )
-            ->whereHas(
-                'slotWaktu',
-                function ($query) use ($slot) {
+            return Reservasi::create([
+                'kode_reservasi' => 'RSV-' . strtoupper(Str::random(8)),
+                'user_id' => auth()->id(),
+                'nama' => $validated['nama'],
+                'email' => $validated['email'],
+                'telepon' => $validated['telepon'],
+                'catatan' => $validated['catatan'] ?? null,
+                'lapangan_id' => $lapangan->id,
+                'slot_id' => $slot->id,
+                'tanggal' => $validated['tanggal'],
+                'total_harga' => $lapangan->harga_per_jam,
+                'status' => 'Draft',
+            ]);
+        });
 
-                    $query->where(
-                        'jam_mulai',
-                        $slot->jam_mulai
-                    )
-                        ->where(
-                            'jam_selesai',
-                            $slot->jam_selesai
-                        );
-                }
-            )
-            ->exists();
-        if ($sudahDipesan) {
-
-            return back()
-                ->withInput()
-                ->with(
-                    'error',
-                    'Slot waktu tersebut sudah dipesan. Silakan pilih slot lain.'
-                );
+        if (!$reservasi) {
+            return back()->withInput()->with('error', 'Slot waktu tersebut sudah dipesan. Silakan pilih slot lain.');
         }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Generate kode reservasi
-        |--------------------------------------------------------------------------
-        */
-
-        $kodeReservasi = 'RSV-' .
-            strtoupper(
-                Str::random(8)
-            );
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Menyimpan reservasi
-        |--------------------------------------------------------------------------
-        */
-
-        $reservasi = Reservasi::create([
-
-            'kode_reservasi' => $kodeReservasi,
-            'user_id' => 1,
-            'nama' => $validated['nama'],
-            'email' => $validated['email'],
-            'telepon' => $validated['telepon'],
-            'catatan' => $validated['catatan'] ?? null,
-            'lapangan_id' => $validated['lapangan_id'],
-            'slot_id' => $validated['slot_id'],
-            'tanggal' => $validated['tanggal'],
-            'total_harga' => $lapangan->harga_per_jam,
-
-            // Reservasi baru harus menunggu validasi admin.
-            'status' => 'draft',
-        ]);
 
 
         /*

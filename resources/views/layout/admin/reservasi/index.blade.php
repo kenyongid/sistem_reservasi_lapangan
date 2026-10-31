@@ -270,7 +270,10 @@
 
                                             {{-- SETUJUI --}}
                                             <form action="{{ route('admin.reservasi.setujui', $item->id) }}" method="POST"
-                                                class="d-inline" onsubmit="return confirm('Setujui reservasi ini?');">
+                                                class="d-inline" data-swal-confirm data-swal-icon="question"
+                                                data-swal-title="Setujui reservasi?"
+                                                data-swal-text="Reservasi {{ $item->kode_reservasi }} akan ditandai Disetujui."
+                                                data-swal-confirm-text="Ya, setujui">
 
                                                 @csrf
                                                 @method('PUT')
@@ -284,7 +287,10 @@
 
                                             {{-- TOLAK --}}
                                             <form action="{{ route('admin.reservasi.tolak', $item->id) }}" method="POST"
-                                                class="d-inline" onsubmit="return confirm('Yakin ingin menolak reservasi ini?');">
+                                                class="d-inline" data-swal-confirm data-swal-icon="warning"
+                                                data-swal-title="Tolak reservasi?"
+                                                data-swal-text="Reservasi {{ $item->kode_reservasi }} akan ditandai Ditolak."
+                                                data-swal-confirm-text="Ya, tolak">
 
                                                 @csrf
                                                 @method('PUT')

@@ -24,7 +24,7 @@ return new class extends Migration {
     public function down(): void
     {
         Schema::table('reservasi', function (Blueprint $table) {
-            //
+            $table->dropColumn(['nama', 'email', 'telepon', 'catatan']);
         });
     }
 };

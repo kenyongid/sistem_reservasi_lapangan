@@ -147,6 +147,51 @@
 
 
      @stack('scripts')
+     <script>
+          document.addEventListener('submit', function (event) {
+               const form = event.target.closest('form[data-swal-confirm]');
+               if (!form || form.dataset.swalConfirmed) return;
+
+               event.preventDefault();
+               Swal.fire({
+                    icon: form.dataset.swalIcon || 'question',
+                    title: form.dataset.swalTitle || 'Konfirmasi tindakan?',
+                    text: form.dataset.swalText || 'Periksa kembali data sebelum melanjutkan.',
+                    showCancelButton: true,
+                    confirmButtonText: form.dataset.swalConfirmText || 'Ya, lanjutkan',
+                    cancelButtonText: 'Batal',
+                    reverseButtons: true,
+               }).then(function (result) {
+                    if (result.isConfirmed) {
+                         form.dataset.swalConfirmed = '1';
+                         form.requestSubmit();
+                    }
+               });
+          });
+     </script>
+
+     @if(session('reservation_status_success'))
+          <script>
+               Swal.fire({
+                    icon: 'success',
+                    title: 'Status reservasi diperbarui',
+                    text: @json(session('reservation_status_success')),
+                    confirmButtonText: 'Mengerti',
+               });
+          </script>
+     @endif
+
+     @if(session('reservation_status_info'))
+          <script>
+               Swal.fire({
+                    icon: 'info',
+                    title: 'Tidak ada perubahan',
+                    text: @json(session('reservation_status_info')),
+                    confirmButtonText: 'Mengerti',
+               });
+          </script>
+     @endif
+
      @if(session('login_success'))
 
           <script>

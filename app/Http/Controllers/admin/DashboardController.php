@@ -35,6 +35,8 @@ class DashboardController extends Controller
 
         $lapanganAktif = Lapangan::where('status', 'aktif')->count();
 
+        $reservasiMenungguTotal = Reservasi::where('status', 'Menunggu')->count();
+
 
         // =====================================================
         // RESERVASI MINGGU INI
@@ -42,9 +44,9 @@ class DashboardController extends Controller
         // proses pemesanan.
         // =====================================================
 
-        $reservasiMingguIni = Reservasi::whereBetween('tanggal', [
-            $awalMinggu->toDateString(),
-            $akhirMinggu->toDateString()
+        $reservasiMingguIni = Reservasi::whereBetween('updated_at', [
+            $awalMinggu->copy()->startOfDay(),
+            $akhirMinggu->copy()->endOfDay(),
         ])
             ->whereIn('status', [
                 'Menunggu',
@@ -58,25 +60,25 @@ class DashboardController extends Controller
         // STATUS RESERVASI MINGGU INI
         // =====================================================
 
-        $disetujuiMingguIni = Reservasi::whereBetween('tanggal', [
-            $awalMinggu->toDateString(),
-            $akhirMinggu->toDateString()
+        $disetujuiMingguIni = Reservasi::whereBetween('updated_at', [
+            $awalMinggu->copy()->startOfDay(),
+            $akhirMinggu->copy()->endOfDay(),
         ])
             ->where('status', 'Disetujui')
             ->count();
 
 
-        $menungguMingguIni = Reservasi::whereBetween('tanggal', [
-            $awalMinggu->toDateString(),
-            $akhirMinggu->toDateString()
+        $menungguMingguIni = Reservasi::whereBetween('updated_at', [
+            $awalMinggu->copy()->startOfDay(),
+            $akhirMinggu->copy()->endOfDay(),
         ])
             ->where('status', 'Menunggu')
             ->count();
 
 
-        $ditolakMingguIni = Reservasi::whereBetween('tanggal', [
-            $awalMinggu->toDateString(),
-            $akhirMinggu->toDateString()
+        $ditolakMingguIni = Reservasi::whereBetween('updated_at', [
+            $awalMinggu->copy()->startOfDay(),
+            $akhirMinggu->copy()->endOfDay(),
         ])
             ->where('status', 'Ditolak')
             ->count();
@@ -87,9 +89,9 @@ class DashboardController extends Controller
         // Hanya reservasi yang sudah disetujui.
         // =====================================================
 
-        $pendapatanMingguIni = Reservasi::whereBetween('tanggal', [
-            $awalMinggu->toDateString(),
-            $akhirMinggu->toDateString()
+        $pendapatanMingguIni = Reservasi::whereBetween('updated_at', [
+            $awalMinggu->copy()->startOfDay(),
+            $akhirMinggu->copy()->endOfDay(),
         ])
             ->where('status', 'Disetujui')
             ->sum('total_harga');
@@ -103,9 +105,9 @@ class DashboardController extends Controller
             'reservasi',
             function ($query) use ($awalMinggu, $akhirMinggu) {
 
-                $query->whereBetween('tanggal', [
-                    $awalMinggu->toDateString(),
-                    $akhirMinggu->toDateString()
+                $query->whereBetween('updated_at', [
+                    $awalMinggu->copy()->startOfDay(),
+                    $akhirMinggu->copy()->endOfDay(),
                 ])
                     ->where('status', 'Disetujui');
             }
@@ -122,9 +124,9 @@ class DashboardController extends Controller
                 'reservasi',
                 function ($query) use ($awalMinggu, $akhirMinggu) {
 
-                    $query->whereBetween('tanggal', [
-                        $awalMinggu->toDateString(),
-                        $akhirMinggu->toDateString()
+                    $query->whereBetween('updated_at', [
+                        $awalMinggu->copy()->startOfDay(),
+                        $akhirMinggu->copy()->endOfDay(),
                     ])
                         ->where('status', 'Disetujui');
                 }
@@ -153,7 +155,7 @@ class DashboardController extends Controller
         ) {
 
             $menunggu = Reservasi::whereDate(
-                'tanggal',
+                'updated_at',
                 $tanggal->toDateString()
             )
                 ->where('status', 'Menunggu')
@@ -161,7 +163,7 @@ class DashboardController extends Controller
 
 
             $disetujui = Reservasi::whereDate(
-                'tanggal',
+                'updated_at',
                 $tanggal->toDateString()
             )
                 ->where('status', 'Disetujui')
@@ -169,7 +171,7 @@ class DashboardController extends Controller
 
 
             $ditolak = Reservasi::whereDate(
-                'tanggal',
+                'updated_at',
                 $tanggal->toDateString()
             )
                 ->where('status', 'Ditolak')
@@ -214,6 +216,7 @@ class DashboardController extends Controller
             compact(
                 'totalLapangan',
                 'lapanganAktif',
+                'reservasiMenungguTotal',
                 'reservasiMingguIni',
                 'disetujuiMingguIni',
                 'menungguMingguIni',

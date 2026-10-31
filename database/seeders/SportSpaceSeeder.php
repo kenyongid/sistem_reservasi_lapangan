@@ -23,13 +23,18 @@ class SportSpaceSeeder extends Seeder
         |--------------------------------------------------------------------------
         */
 
-        $admin = User::create([
-            'nama' => 'Admin SportSpace',
-            'email' => 'admin@sportspace.test',
-            'password' => Hash::make('password'),
-            'no_telepon' => '081234567890',
-            'role' => 'admin',
-        ]);
+        $adminPassword = config('sportspace.admin_password');
+        if ($adminPassword) {
+            User::updateOrCreate(
+                ['email' => config('sportspace.admin_email')],
+                [
+                    'nama' => 'Admin SportSpace',
+                    'password' => Hash::make($adminPassword),
+                    'no_telepon' => '081234567890',
+                    'role' => 'admin',
+                ]
+            );
+        }
 
         $user = User::create([
             'nama' => 'Andi Pratama',

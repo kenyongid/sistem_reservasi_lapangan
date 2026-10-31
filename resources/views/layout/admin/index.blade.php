@@ -79,7 +79,7 @@
                             <p class="mb-1">Menunggu Persetujuan</p>
 
                             <h4 class="mb-0 text-warning">
-                                {{ $menungguMingguIni }}
+                                {{ $reservasiMenungguTotal }}
                             </h4>
                         </div>
 
@@ -90,7 +90,9 @@
                     </div>
 
                     <small class="text-muted">
-                        Perlu ditinjau admin
+                        <a href="{{ route('admin.reservasi.index') }}" class="text-reset">
+                            Perlu ditinjau admin
+                        </a>
                     </small>
 
                 </div>

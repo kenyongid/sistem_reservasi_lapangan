@@ -26,7 +26,7 @@ class AdminAuthController extends Controller
 
             return redirect()
                 ->route('admin.dashboard')
-                ->with('login_success', 'Selamat datang, ' . Auth::user()->name . '!');
+                ->with('login_success', 'Selamat datang, ' . Auth::user()->nama . '!');
         }
 
         return back()

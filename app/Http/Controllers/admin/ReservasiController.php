@@ -112,7 +112,8 @@ class ReservasiController extends Controller
         $reservasi->load([
             'user',
             'lapangan.jenisOlahraga',
-            'slotWaktu'
+            'slotWaktu',
+            'detailReservasi.produk',
         ]);
 
         return view(
@@ -138,13 +139,20 @@ class ReservasiController extends Controller
      */
     public function setujui(Reservasi $reservasi)
     {
+        if ($reservasi->status !== 'Menunggu') {
+            return back()->with(
+                'reservation_status_info',
+                "Reservasi {$reservasi->kode_reservasi} sudah berstatus {$reservasi->status}; tidak ada perubahan."
+            );
+        }
+
         $reservasi->update([
             'status' => 'Disetujui'
         ]);
 
         return back()->with(
-            'success',
-            'Reservasi berhasil disetujui.'
+            'reservation_status_success',
+            "Reservasi {$reservasi->kode_reservasi} berhasil disetujui. Statusnya sekarang Disetujui."
         );
     }
 
@@ -154,13 +162,20 @@ class ReservasiController extends Controller
      */
     public function tolak(Reservasi $reservasi)
     {
+        if ($reservasi->status !== 'Menunggu') {
+            return back()->with(
+                'reservation_status_info',
+                "Reservasi {$reservasi->kode_reservasi} sudah berstatus {$reservasi->status}; tidak ada perubahan."
+            );
+        }
+
         $reservasi->update([
             'status' => 'Ditolak'
         ]);
 
         return back()->with(
-            'success',
-            'Reservasi berhasil ditolak.'
+            'reservation_status_success',
+            "Reservasi {$reservasi->kode_reservasi} berhasil ditolak. Statusnya sekarang Ditolak."
         );
     }
 }

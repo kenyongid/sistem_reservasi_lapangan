@@ -222,6 +222,55 @@
                 </div>
 
 
+                {{-- MAKANAN DAN MINUMAN TAMBAHAN --}}
+                <div class="mt-4">
+                    <h6 class="fw-bold mb-3">
+                        Makanan & Minuman Tambahan
+                    </h6>
+
+                    <div class="table-responsive">
+                        <table class="table align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Produk</th>
+                                    <th>Kategori</th>
+                                    <th class="text-center">Jumlah</th>
+                                    <th class="text-end">Harga Satuan</th>
+                                    <th class="text-end">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($reservasi->detailReservasi as $detail)
+                                    <tr>
+                                        <td>{{ $detail->produk->nama ?? 'Produk dihapus' }}</td>
+                                        <td>{{ $detail->produk->kategori ?? '-' }}</td>
+                                        <td class="text-center">{{ $detail->jumlah }}</td>
+                                        <td class="text-end">Rp {{ number_format($detail->harga, 0, ',', '.') }}</td>
+                                        <td class="text-end">Rp {{ number_format($detail->subtotal, 0, ',', '.') }}</td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted py-3">
+                                            Tidak ada makanan atau minuman tambahan.
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                            @if($reservasi->detailReservasi->isNotEmpty())
+                                <tfoot>
+                                    <tr>
+                                        <th colspan="4" class="text-end">Total Makanan & Minuman</th>
+                                        <th class="text-end">
+                                            Rp {{ number_format($reservasi->detailReservasi->sum('subtotal'), 0, ',', '.') }}
+                                        </th>
+                                    </tr>
+                                </tfoot>
+                            @endif
+                        </table>
+                    </div>
+                </div>
+
+
                 {{-- TOMBOL AKSI --}}
                 <div class="mt-4">
 
@@ -238,7 +287,10 @@
 
                         {{-- SETUJUI --}}
                         <form action="{{ route('admin.reservasi.setujui', $reservasi->id) }}" method="POST" class="d-inline"
-                            onsubmit="return confirm('Setujui reservasi ini?');">
+                            data-swal-confirm data-swal-icon="question"
+                            data-swal-title="Setujui reservasi?"
+                            data-swal-text="Reservasi {{ $reservasi->kode_reservasi }} akan ditandai Disetujui."
+                            data-swal-confirm-text="Ya, setujui">
 
                             @csrf
                             @method('PUT')
@@ -253,7 +305,10 @@
 
                         {{-- TOLAK --}}
                         <form action="{{ route('admin.reservasi.tolak', $reservasi->id) }}" method="POST" class="d-inline"
-                            onsubmit="return confirm('Yakin ingin menolak reservasi ini?');">
+                            data-swal-confirm data-swal-icon="warning"
+                            data-swal-title="Tolak reservasi?"
+                            data-swal-text="Reservasi {{ $reservasi->kode_reservasi }} akan ditandai Ditolak."
+                            data-swal-confirm-text="Ya, tolak">
 
                             @csrf
                             @method('PUT')

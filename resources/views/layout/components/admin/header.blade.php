@@ -51,10 +51,10 @@
 
                     <div class="position-relative">
 
-                        @if(isset($menungguMingguIni) && $menungguMingguIni > 0)
+                        @if($jumlahReservasiMenunggu > 0)
 
                             <span class="notify-badge">
-                                {{ $menungguMingguIni }}
+                                {{ $jumlahReservasiMenunggu }}
                             </span>
 
                         @endif
@@ -92,43 +92,23 @@
                     <!-- Notification List -->
                     <div class="header-notifications-list">
 
-                        @if(isset($menungguMingguIni) && $menungguMingguIni > 0)
+                        @if($jumlahReservasiMenunggu > 0)
 
-                            <!-- Ada Reservasi -->
-                            <a class="dropdown-item" href="{{ route('admin.reservasi.index') }}">
-
-                                <div class="d-flex align-items-center">
-
-                                    <div class="notify text-warning border">
-
-                                        <span class="material-symbols-outlined">
-                                            event_available
-                                        </span>
-
+                            @foreach($reservasiMenungguTerbaru as $reservasi)
+                                <a class="dropdown-item" href="{{ route('admin.reservasi.show', $reservasi) }}">
+                                    <div class="d-flex align-items-center">
+                                        <div class="notify text-warning border">
+                                            <span class="material-symbols-outlined">event_available</span>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <h6 class="msg-name mb-1">Pesanan {{ $reservasi->kode_reservasi }}</h6>
+                                            <p class="msg-info mb-0">
+                                                {{ $reservasi->nama }} · {{ $reservasi->lapangan->nama ?? 'Lapangan' }}
+                                            </p>
+                                        </div>
                                     </div>
-
-
-                                    <div class="flex-grow-1">
-
-                                        <h6 class="msg-name mb-1">
-                                            Reservasi Baru
-                                        </h6>
-
-                                        <p class="msg-info mb-0">
-
-                                            Ada
-                                            <strong>
-                                                {{ $menungguMingguIni }}
-                                            </strong>
-                                            reservasi yang menunggu persetujuan.
-
-                                        </p>
-
-                                    </div>
-
-                                </div>
-
-                            </a>
+                                </a>
+                            @endforeach
 
                         @else
 

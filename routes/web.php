@@ -34,7 +34,7 @@ Route::post('/admin/logout', [AdminAuthController::class, 'logout'])
 
 Route::prefix('admin')
     ->name('admin.')
-    ->middleware('auth')
+    ->middleware(['auth', 'admin'])
     ->group(function () {
 
         Route::get('/', [DashboardController::class, 'index'])

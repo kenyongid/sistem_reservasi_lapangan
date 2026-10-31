@@ -21,6 +21,7 @@ return new class extends Migration {
 
     public function down(): void
     {
+        DB::table('reservasi')->where('status', 'Draft')->update(['status' => 'Menunggu']);
         DB::statement("
             ALTER TABLE reservasi
             MODIFY status ENUM(
