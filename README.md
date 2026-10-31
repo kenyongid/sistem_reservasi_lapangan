@@ -1,4 +1,3 @@
-Berikut versi **full `README.md`** yang bisa langsung kamu copy-paste ke repository SportSpace. Saya buat sebagai dokumentasi project, bukan sekadar deskripsi singkat, dan tidak memasukkan klaim penggunaan plugin debugging yang tidak kamu pakai.
 
 ````md
 # SportSpace
